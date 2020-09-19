@@ -37,3 +37,69 @@ actions<-tt$actions %>%
    filter(action_type != "Unknown")
 ```
 
+
+```{r}
+plants%>%
+  filter(!is.na(year_last_seen))%>%
+  count(year_last_seen, continent)%>%
+  ggplot(aes(year_last_seen, n, fill=continent))+
+  geom_col()
+```
+
+```{r}
+by_continent_threats<- threats %>%
+  count(threat_type, continent, sort = TRUE) %>%
+  mutate(threat_type=fct_reorder(threat_type, n, sum))
+
+
+by_continent_threats %>%
+  mutate(threat_type = reorder_within(threat_type, n, continent ))%>%
+    ggplot(aes(n, threat_type))+
+  geom_col()+
+  scale_y_reordered()+
+  facet_wrap(vars(continent), scales = "free")+
+  labs(x="# of plants facing this threat",
+       y= "",
+       title= "What are the most common threats to plants by continent")
+```
+
+
+```{r}
+##threats classification scheme: https://www.iucnredlist.org/resources/threat-classification-scheme
+threats %>%
+  filter(!is.na(year_last_seen)) %>%
+  count(year_last_seen, threat_type, continent)%>%
+  filter(fct_lump(threat_type, 9, w=n) !="other")%>%
+    mutate(threat_type = fct_reorder(threat_type, -n, sum )) %>%
+   ggplot(aes(year_last_seen, n, fill= continent))+
+  geom_col()+
+  scale_y_reordered()+
+  facet_wrap(vars(threat_type), scales = "free")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  labs(x="last seen",
+       y="# of plants extinct with this threat")
+```
+
+
+```{r}
+library(rvest)
+
+links<-read_html("http://www.orchidspecies.com/indexbulb.htm") %>%
+  html_nodes("li a")
+
+link_text <- html_text(links)
+
+bulbophyllum_links <- tibble(text = html_text(links),
+       link = paste0("http://www.orchidspecies.com/", html_attr(links, "href"))) %>%
+  mutate(link_text = str_trim(link_text)) %>%
+  separate(link_text, c("genus", "species", "citation"), sep = " ", extra = "merge") %>%
+  filter(!is.na(citation))
+  
+  plants %>%
+    inner_join(bulbophyllum_links, by = c("genus", "species")) %>%
+    select(binomial_name, country, continent, link) %>%
+    mutate(html = map(link, read_html)) %>%
+    mutate(image = map_chr(html, ~html_attr(html_node(., "a img"), "src"))) %>%
+    transmute(binomial_name, image = paste0("http://www.orchidspecies.com/", image ))
+```
+
