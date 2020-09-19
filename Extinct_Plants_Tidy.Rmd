@@ -1,0 +1,39 @@
+---
+title: "Extinct_Plants"
+author: "Sonia Nikiema"
+date: "9/19/2020"
+output: html_document
+---
+
+```{r message=FALSE, warning=FALSE}
+library(tidytuesdayR)
+library(tidyverse)
+library(scales)
+library(tidytext)
+
+theme_set(theme_light())
+
+tidytuesdayR::use_tidytemplate()
+```
+
+```{r message=FALSE, warning=FALSE}
+tt<-tt_load("2020-08-18")
+
+tt
+
+plants<-tt$plants%>%
+   mutate(year_last_seen = fct_relevel(year_last_seen, "before 1900")) %>%
+    separate(binomial_name, c("genus", "species"), sep=" ", remove = FALSE)
+
+threats<-tt$threats %>%
+  filter(threatened==1) %>%
+  mutate(year_last_seen = fct_relevel(year_last_seen, "before 1900")) %>%
+    separate(binomial_name, c("genus", "species"), sep=" ", remove = FALSE)
+
+actions<-tt$actions %>%
+  filter(action_taken==1) %>%
+  mutate(year_last_seen = fct_relevel(year_last_seen, "before 1900")) %>%
+    separate(binomial_name, c("genus", "species"), sep=" ", remove = FALSE) %>%
+   filter(action_type != "Unknown")
+```
+
